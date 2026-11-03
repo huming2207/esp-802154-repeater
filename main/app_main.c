@@ -6,6 +6,7 @@
 #include "nvs_flash.h"
 
 #include "pair_gpio.h"
+#include "repeater.h"
 
 static const char *TAG = "repeater";
 
@@ -21,5 +22,10 @@ void app_main(void)
     ESP_LOGI(TAG, "802.15.4 repeater starting");
 
     const bool reset_and_pair = pair_gpio_reset_requested();
-    (void)reset_and_pair;
+
+#if CONFIG_RPT_PROTOCOL_ZIGBEE
+    zigbee_router_start(reset_and_pair);
+#elif CONFIG_RPT_PROTOCOL_THREAD
+    thread_router_start(reset_and_pair);
+#endif
 }
