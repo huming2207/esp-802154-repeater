@@ -1,0 +1,26 @@
+# Common defaults for both the Zigbee and the Thread build.
+# Pick the protocol in menuconfig ("802.15.4 Repeater" -> "Mesh protocol"), or add
+# sdkconfig.defaults.zigbee / sdkconfig.defaults.thread to SDKCONFIG_DEFAULTS (see README).
+
+CONFIG_IDF_TARGET="esp32c6"
+
+# ESP32-C6-MINI-1-N4: 4 MB flash, no PSRAM
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+CONFIG_COMPILER_OPTIMIZATION_SIZE=y
+
+# Thread Joiner (commissioning with a PSKd) needs DTLS + EC-JPAKE.
+# They are only linked into the Thread build; the Zigbee build drops them.
+CONFIG_MBEDTLS_SSL_PROTO_DTLS=y
+CONFIG_MBEDTLS_ECJPAKE_C=y
+CONFIG_MBEDTLS_KEY_EXCHANGE_ECJPAKE=y
+
+# A Thread router does not need lwIP / esp_netif on the SoC itself.
+CONFIG_OPENTHREAD_PLATFORM_NETIF=n
+CONFIG_OPENTHREAD_CLI=n
+CONFIG_OPENTHREAD_CONSOLE_ENABLE=n
+CONFIG_OPENTHREAD_BORDER_ROUTER=n
+CONFIG_OPENTHREAD_FTD=y
+CONFIG_OPENTHREAD_TASK_SIZE=8192

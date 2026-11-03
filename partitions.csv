@@ -1,0 +1,8 @@
+# ESP32-C6-MINI-1-N4: 4 MB flash.
+# Both the Zigbee stack (namespace "zigbee") and OpenThread (namespace "openthread")
+# keep their network credentials in the "nvs" partition, so it is a bit larger than usual.
+# Name,    Type, SubType, Offset,   Size,     Flags
+nvs,       data, nvs,     0x9000,   0x16000,
+phy_init,  data, phy,     0x1f000,  0x1000,
+factory,   app,  factory, 0x20000,  0x1e0000,
+zb_fct,    data, fat,     0x200000, 0x1000,

@@ -1,0 +1,101 @@
+menu "802.15.4 Repeater"
+
+    choice RPT_PROTOCOL
+        prompt "Mesh protocol"
+        default RPT_PROTOCOL_ZIGBEE
+        help
+            The firmware runs exactly one 802.15.4 stack. Pick it here.
+
+            Note: the Zigbee library and OpenThread both implement the IEEE 802.15.4
+            driver callbacks, so they cannot be linked into the same image. If you
+            switch the protocol of an existing build directory, make sure the other
+            stack ("Zigbee Enable" / "OpenThread") is disabled too, or simply delete
+            sdkconfig and rebuild.
+
+        config RPT_PROTOCOL_ZIGBEE
+            bool "Zigbee router"
+            select ZB_ENABLED
+
+        config RPT_PROTOCOL_THREAD
+            bool "Thread router (FTD)"
+            select OPENTHREAD_ENABLED
+            select OPENTHREAD_JOINER
+    endchoice
+
+    config RPT_PAIR_GPIO
+        int "Reset-and-pair GPIO"
+        range 0 30
+        default 2
+        help
+            Short this GPIO to GND during boot to wipe the stored network and start
+            pairing. The internal pull-up is used, no external parts needed.
+
+    config RPT_PAIR_SAMPLE_WINDOW_MS
+        int "Boot window to sample the GPIO (ms)"
+        range 500 10000
+        default 3000
+
+    config RPT_PAIR_HOLD_MS
+        int "Minimum continuous low time to trigger (ms)"
+        range 50 10000
+        default 1000
+        help
+            Glitch filter: the GPIO has to be held low for at least this long,
+            without interruption, inside the boot window.
+
+    config RPT_PAIRING_TIMEOUT_S
+        int "Pairing window after a GPIO reset (s)"
+        range 10 3600
+        default 180
+        help
+            After a GPIO-triggered reset the device tries to join a network for this
+            long. If it does not join, it stops trying until the next reboot.
+            A device without any stored network always keeps trying.
+
+    config RPT_JOIN_RETRY_MS
+        int "Delay between join attempts (ms)"
+        range 1000 60000
+        default 5000
+
+    config RPT_VENDOR_NAME
+        string "Vendor / manufacturer name"
+        default "DIY"
+        help
+            Reported as the Zigbee Basic cluster ManufacturerName and as the
+            Thread Joiner vendor name. Max 32 characters.
+
+    config RPT_MODEL_NAME
+        string "Model name"
+        default "C6-802154-Repeater"
+        help
+            Reported as the Zigbee Basic cluster ModelIdentifier and as the
+            Thread Joiner vendor model. Max 32 characters.
+
+    menu "Zigbee"
+        depends on RPT_PROTOCOL_ZIGBEE
+
+        config RPT_ZB_CHANNEL_MASK
+            hex "Channel mask to scan when joining"
+            default 0x07FFF800
+            help
+                Bit N = channel N. The default scans channels 11-26.
+
+        config RPT_ZB_MAX_CHILDREN
+            int "Max number of child (end) devices"
+            range 0 64
+            default 10
+    endmenu
+
+    menu "Thread"
+        depends on RPT_PROTOCOL_THREAD
+
+        config RPT_OT_JOINER_PSKD
+            string "Joiner PSKd (pairing code)"
+            default "J01NU5"
+            help
+                Pre-shared key the commissioner must use to admit this device.
+                6-32 characters, uppercase letters and digits only, without
+                I, O, Q and Z.
+    endmenu
+
+endmenu
