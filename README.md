@@ -73,13 +73,24 @@ and run `. $IDF_PATH/export.sh`.
 The Zigbee library (`espressif/esp-zigbee-lib` 2.0.x) is downloaded automatically
 by the IDF component manager.
 
-### Option A: separate build directories (recommended)
-
-You can keep both variants side by side:
+### Option A: build script (recommended)
 
 ```bash
-idf.py -B build-zigbee -DSDKCONFIG=build-zigbee/sdkconfig -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.zigbee" build
+scripts/build.sh
 ```
+
+This builds both images; add `zigbee` or `thread` to build only one. Each protocol
+gets its own build directory (`build-zigbee/`, `build-thread/`), and the flashable
+images are collected in `dist/`:
+
+| File                                             | Flash at  | Contents                                   |
+|--------------------------------------------------|-----------|--------------------------------------------|
+| `esp-802154-repeater-<protocol>-<version>-full.bin` | `0x0`     | bootloader + partition table + application |
+| `esp-802154-repeater-<protocol>-<version>-app.bin`  | `0x20000` | application only                           |
+| `SHA256SUMS`                                     |           | checksums                                  |
+
+The script just runs `idf.py` with a separate `sdkconfig` per protocol, so you can
+do the same by hand:
 
 ```bash
 idf.py -B build-thread -DSDKCONFIG=build-thread/sdkconfig -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.thread" build
@@ -102,9 +113,21 @@ router*, then run `idf.py build`. Zigbee is the default.
 
 ### CI builds
 
-Every push is built by GitHub Actions (`.github/workflows/build.yml`). The workflow
-artifacts include a merged `repeater-<protocol>-full.bin` that can be flashed at
-offset `0x0`.
+GitHub Actions (`.github/workflows/build.yml`) runs `scripts/build.sh` for both
+protocols in the `espressif/idf:v6.1` container. This happens on every push to
+`master` and on every pull request. The images are attached to the workflow run as
+`firmware-zigbee` and `firmware-thread` artifacts.
+
+Pushing a tag such as `v1.0.0` also creates a GitHub release with all images and
+their checksums:
+
+```bash
+git tag v1.0.0
+```
+
+```bash
+git push origin v1.0.0
+```
 
 ## Flashing
 
@@ -112,10 +135,10 @@ offset `0x0`.
 idf.py -B build-zigbee -p /dev/ttyACM0 flash monitor
 ```
 
-Or flash a merged image from CI:
+Or flash a merged image from `dist/`, a CI run or a release:
 
 ```bash
-python -m esptool --chip esp32c6 -p /dev/ttyACM0 write-flash 0x0 repeater-zigbee-full.bin
+python -m esptool --chip esp32c6 -p /dev/ttyACM0 write-flash 0x0 esp-802154-repeater-zigbee-<version>-full.bin
 ```
 
 When you flash a different protocol over an existing install, the old protocol's
@@ -209,6 +232,8 @@ main/
   zigbee_router.c   Zigbee router (esp-zigbee-lib 2.x)
   thread_router.c   Thread FTD + Joiner (ESP-IDF OpenThread)
   Kconfig.projbuild "802.15.4 Repeater" menu
+scripts/build.sh            builds both images into dist/ (used by CI)
+.github/workflows/build.yml CI + releases on v* tags
 sdkconfig.defaults          common settings (4 MB flash, size optimisation, mbedTLS for the Joiner)
 sdkconfig.defaults.zigbee   selects Zigbee
 sdkconfig.defaults.thread   selects Thread

@@ -2,36 +2,56 @@ name: Build
 
 on:
   push:
+    branches: [master]
+    tags: ["v*"]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
+    name: Build ${{ matrix.protocol }}
     runs-on: ubuntu-latest
+    container: espressif/idf:v6.1
     strategy:
       fail-fast: false
       matrix:
         protocol: [zigbee, thread]
-    container: espressif/idf:v6.1
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history + tags for the version string
 
-      - name: Build ${{ matrix.protocol }} firmware
+      - name: Build
         shell: bash
         run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           . "$IDF_PATH/export.sh"
-          idf.py -B build-${{ matrix.protocol }} \
-                 -DSDKCONFIG=build-${{ matrix.protocol }}/sdkconfig \
-                 -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.${{ matrix.protocol }}" \
-                 build
-          cd build-${{ matrix.protocol }}
-          python -m esptool --chip esp32c6 merge-bin -o ../repeater-${{ matrix.protocol }}-full.bin @flash_args
+          scripts/build.sh ${{ matrix.protocol }}
 
       - uses: actions/upload-artifact@v4
         with:
-          name: repeater-${{ matrix.protocol }}
-          path: |
-            repeater-${{ matrix.protocol }}-full.bin
-            build-${{ matrix.protocol }}/esp_802154_repeater.bin
-            build-${{ matrix.protocol }}/bootloader/bootloader.bin
-            build-${{ matrix.protocol }}/partition_table/partition-table.bin
-            build-${{ matrix.protocol }}/flash_args
+          name: firmware-${{ matrix.protocol }}
+          path: dist/*.bin
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: firmware-*
+          merge-multiple: true
+          path: dist
+
+      - name: Checksums
+        run: cd dist && sha256sum ./*.bin > SHA256SUMS
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
