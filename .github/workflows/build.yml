@@ -1,0 +1,37 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        protocol: [zigbee, thread]
+    container: espressif/idf:v6.1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build ${{ matrix.protocol }} firmware
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          idf.py -B build-${{ matrix.protocol }} \
+                 -DSDKCONFIG=build-${{ matrix.protocol }}/sdkconfig \
+                 -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.${{ matrix.protocol }}" \
+                 build
+          cd build-${{ matrix.protocol }}
+          python -m esptool --chip esp32c6 merge-bin -o ../repeater-${{ matrix.protocol }}-full.bin @flash_args
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: repeater-${{ matrix.protocol }}
+          path: |
+            repeater-${{ matrix.protocol }}-full.bin
+            build-${{ matrix.protocol }}/esp_802154_repeater.bin
+            build-${{ matrix.protocol }}/bootloader/bootloader.bin
+            build-${{ matrix.protocol }}/partition_table/partition-table.bin
+            build-${{ matrix.protocol }}/flash_args
