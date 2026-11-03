@@ -3,6 +3,7 @@
  */
 
 #include "esp_log.h"
+#include "esp_ota_ops.h"
 #include "nvs_flash.h"
 
 #include "pair_gpio.h"
@@ -28,4 +29,7 @@ void app_main(void)
 #elif CONFIG_RPT_PROTOCOL_THREAD
     thread_router_start(reset_and_pair);
 #endif
+
+    /* Got this far: keep this image (cancels a pending rollback after an update). */
+    esp_ota_mark_app_valid_cancel_rollback();
 }

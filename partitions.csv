@@ -1,8 +1,12 @@
-# ESP32-C6-MINI-1-N4: 4 MB flash.
+# ESP32-C6-MINI-1-N4: 4 MB flash, two app slots for firmware updates over the web portal.
 # Both the Zigbee stack (namespace "zigbee") and OpenThread (namespace "openthread")
 # keep their network credentials in the "nvs" partition, so it is a bit larger than usual.
+# nvs and ota_0 keep the offsets of the earlier single-app layout, so a board moved to
+# this layout keeps its stored network.
 # Name,    Type, SubType, Offset,   Size,     Flags
 nvs,       data, nvs,     0x9000,   0x16000,
 phy_init,  data, phy,     0x1f000,  0x1000,
-factory,   app,  factory, 0x20000,  0x1e0000,
-zb_fct,    data, fat,     0x200000, 0x1000,
+ota_0,     app,  ota_0,   0x20000,  0x1e0000,
+ota_1,     app,  ota_1,   0x200000, 0x1e0000,
+otadata,   data, ota,     0x3e0000, 0x2000,
+zb_fct,    data, fat,     0x3e2000, 0x1000,

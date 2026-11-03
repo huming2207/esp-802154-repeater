@@ -9,6 +9,10 @@ CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 
+# Firmware updates: if a new image fails before it marks itself valid,
+# the bootloader goes back to the previous one.
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+
 CONFIG_COMPILER_OPTIMIZATION_SIZE=y
 
 # Thread Joiner (commissioning with a PSKd) needs DTLS + EC-JPAKE.
