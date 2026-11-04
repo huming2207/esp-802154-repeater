@@ -80,6 +80,31 @@ menu "802.15.4 Repeater"
             Reported as the Zigbee Basic cluster ModelIdentifier and as the
             Thread Joiner vendor model. Max 32 characters.
 
+    menu "Firmware update portal"
+
+        config RPT_OTA_AP_SSID_PREFIX
+            string "Access point name prefix"
+            default "C6-Repeater"
+            help
+                The last two bytes of the MAC address are appended, e.g. "C6-Repeater-1A2B".
+
+        config RPT_OTA_AP_PASSWORD
+            string "Access point password"
+            default "repeater"
+            help
+                WPA2 password, at least 8 characters. Leave empty for an open network.
+
+        config RPT_OTA_AP_CHANNEL
+            int "Access point Wi-Fi channel"
+            range 1 13
+            default 6
+
+        config RPT_OTA_PORTAL_TIMEOUT_MIN
+            int "Reboot after this many minutes without an update (0 = never)"
+            range 0 1440
+            default 10
+    endmenu
+
     menu "Zigbee"
         depends on RPT_PROTOCOL_ZIGBEE
 

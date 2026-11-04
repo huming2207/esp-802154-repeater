@@ -7,6 +7,7 @@
 #include "nvs_flash.h"
 
 #include "boot_gpio.h"
+#include "ota_portal.h"
 #include "repeater.h"
 
 static const char *TAG = "repeater";
@@ -23,6 +24,13 @@ void app_main(void)
     ESP_LOGI(TAG, "802.15.4 repeater starting");
 
     const boot_action_t action = boot_gpio_sample();
+    if (action == BOOT_ACTION_OTA_PORTAL) {
+        /* Update mode: Wi-Fi access point + web page, no 802.15.4 stack. */
+        ota_portal_start();
+        esp_ota_mark_app_valid_cancel_rollback();
+        return;
+    }
+
     const bool reset_and_pair = (action == BOOT_ACTION_RESET_AND_PAIR);
 
 #if CONFIG_RPT_PROTOCOL_ZIGBEE

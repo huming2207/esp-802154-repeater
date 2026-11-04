@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Repeater firmware update</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --fg: #1d2330; --muted: #5d6677; --line: #d9dde4;
+    --accent: #2d6cdf; --ok: #1f8a4c; --err: #c23b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14171c; --card: #1d2128; --fg: #e6e9ef; --muted: #9aa3b2; --line: #2e343e;
+            --accent: #6d9cf0; --ok: #4cc283; --err: #ef7070; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 560px; margin: 0 auto; padding: 24px 16px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.sub { margin: 0 0 20px; color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
+  dt { color: var(--muted); }
+  dd { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; }
+  input[type=file] { width: 100%; margin: 4px 0 12px; }
+  button { background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 10px 18px;
+           font: inherit; font-weight: 600; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  progress { width: 100%; height: 10px; margin-top: 14px; accent-color: var(--accent); }
+  #status { margin: 10px 0 0; min-height: 1.5em; }
+  .ok { color: var(--ok); } .err { color: var(--err); }
+  small { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>802.15.4 repeater</h1>
+  <p class="sub">Firmware update</p>
+
+  <section class="card">
+    <dl id="info"><dt>Status</dt><dd>loading…</dd></dl>
+  </section>
+
+  <section class="card">
+    <label for="file">Application image (<code>…-app.bin</code>)</label>
+    <input id="file" type="file" accept=".bin,application/octet-stream">
+    <button id="go" disabled>Upload and install</button>
+    <progress id="bar" max="100" value="0" hidden></progress>
+    <p id="status"></p>
+    <small>Zigbee and Thread images are both accepted. Remove the GPIO3 jumper before the
+      device reboots, otherwise it starts this portal again.</small>
+  </section>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const file = $("file"), go = $("go"), bar = $("bar"), status = $("status");
+  let maxSize = 0;
+
+  function say(text, cls) { status.textContent = text; status.className = cls || ""; }
+
+  fetch("/info").then((r) => r.json()).then((i) => {
+    maxSize = i.max_size;
+    const rows = [["Firmware", i.project], ["Version", i.version], ["Protocol", i.protocol],
+                  ["Built", i.build], ["ESP-IDF", i.idf], ["Running slot", i.running],
+                  ["Update slot", i.target + " (" + Math.round(i.max_size / 1024) + " KB)"]];
+    const dl = $("info");
+    dl.replaceChildren();
+    for (const [k, v] of rows) {
+      const dt = document.createElement("dt"); dt.textContent = k;
+      const dd = document.createElement("dd"); dd.textContent = v;
+      dl.append(dt, dd);
+    }
+  }).catch(() => say("Could not read device info", "err"));
+
+  file.addEventListener("change", () => {
+    const f = file.files[0];
+    go.disabled = !f;
+    if (f && maxSize && f.size > maxSize) { say("File is larger than the update slot", "err"); go.disabled = true; }
+    else say(f ? f.name + " — " + Math.round(f.size / 1024) + " KB" : "");
+  });
+
+  go.addEventListener("click", () => {
+    const f = file.files[0];
+    if (!f) return;
+    go.disabled = file.disabled = true;
+    bar.hidden = false; bar.value = 0;
+    say("Uploading…");
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/update");
+    xhr.setRequestHeader("Content-Type", "application/octet-stream");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) bar.value = Math.round((e.loaded / e.total) * 100);
+      if (e.loaded === e.total) say("Verifying…");
+    };
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        bar.value = 100;
+        say("Done. The device is rebooting into the new firmware.", "ok");
+      } else {
+        say("Failed: " + (xhr.responseText || xhr.status), "err");
+        go.disabled = file.disabled = false;
+      }
+    };
+    xhr.onerror = () => { say("Connection lost during upload", "err"); go.disabled = file.disabled = false; };
+    xhr.send(f);
+  });
+</script>
+</body>
+</html>
