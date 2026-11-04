@@ -10,15 +10,14 @@
 # its own build directory (build-<protocol>) and sdkconfig, so they never mix.
 #
 # Output per protocol, in dist/:
-#   esp-802154-repeater-<protocol>-<version>-full.bin   merged image, flash at 0x0
-#   esp-802154-repeater-<protocol>-<version>-app.bin    application only, flash at 0x20000
+#   esp-802154-repeater-<protocol>-<version>-full.bin   merged image, flash over USB at 0x0
+#   esp-802154-repeater-<protocol>-<version>-app.bin    application only, upload in the Wi-Fi update portal
 #
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST="${ROOT}/dist"
 CHIP="esp32c6"
-APP_OFFSET="0x20000" # must match partitions.csv
 
 die() { echo "error: $*" >&2; exit 1; }
 
@@ -66,7 +65,7 @@ echo
 echo "=== Images in ${DIST} ==="
 ls -l "${DIST}"
 echo
-echo "Flash a full image with:"
+echo "Flash over USB:"
 echo "  python -m esptool --chip ${CHIP} -p <PORT> write-flash 0x0 dist/<image>-full.bin"
-echo "or only the application (keeps bootloader/partition table) with:"
-echo "  python -m esptool --chip ${CHIP} -p <PORT> write-flash ${APP_OFFSET} dist/<image>-app.bin"
+echo "Update over Wi-Fi: boot with GPIO3 to GND, join the C6-Repeater-XXXX network,"
+echo "open http://192.168.4.1/ and upload dist/<image>-app.bin"
