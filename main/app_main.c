@@ -6,7 +6,7 @@
 #include "esp_ota_ops.h"
 #include "nvs_flash.h"
 
-#include "pair_gpio.h"
+#include "boot_gpio.h"
 #include "repeater.h"
 
 static const char *TAG = "repeater";
@@ -22,7 +22,8 @@ void app_main(void)
 
     ESP_LOGI(TAG, "802.15.4 repeater starting");
 
-    const bool reset_and_pair = pair_gpio_reset_requested();
+    const boot_action_t action = boot_gpio_sample();
+    const bool reset_and_pair = (action == BOOT_ACTION_RESET_AND_PAIR);
 
 #if CONFIG_RPT_PROTOCOL_ZIGBEE
     zigbee_router_start(reset_and_pair);

@@ -30,18 +30,27 @@ menu "802.15.4 Repeater"
             Short this GPIO to GND during boot to wipe the stored network and start
             pairing. The internal pull-up is used, no external parts needed.
 
-    config RPT_PAIR_SAMPLE_WINDOW_MS
-        int "Boot window to sample the GPIO (ms)"
+    config RPT_OTA_GPIO
+        int "Firmware update portal GPIO"
+        range 0 30
+        default 3
+        help
+            Short this GPIO to GND during boot to start the Wi-Fi access point with
+            the firmware update web page instead of the mesh stack.
+
+    config RPT_BOOT_SAMPLE_WINDOW_MS
+        int "Boot window to sample the GPIOs (ms)"
         range 500 10000
         default 3000
 
-    config RPT_PAIR_HOLD_MS
+    config RPT_BOOT_HOLD_MS
         int "Minimum continuous low time to trigger (ms)"
         range 50 10000
         default 1000
         help
-            Glitch filter: the GPIO has to be held low for at least this long,
-            without interruption, inside the boot window.
+            Glitch filter: a GPIO has to be held low for at least this long,
+            without interruption, inside the boot window. If both GPIOs are
+            held, both are ignored.
 
     config RPT_PAIRING_TIMEOUT_S
         int "Pairing window after a GPIO reset (s)"

@@ -1,4 +1,4 @@
-set(srcs "app_main.c" "pair_gpio.c")
+set(srcs "app_main.c" "boot_gpio.c")
 
 if(CONFIG_RPT_PROTOCOL_ZIGBEE)
     list(APPEND srcs "zigbee_router.c")
