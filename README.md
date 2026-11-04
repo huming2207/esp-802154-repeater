@@ -137,6 +137,11 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
+You can also do this without git: on GitHub open **Actions → Build → Run workflow**
+and enter a new tag in *release_tag* (for example `v1.1.0`). The workflow then
+builds the firmware with that version, creates the tag on the selected commit and
+publishes the release.
+
 ## Flashing
 
 ```bash
